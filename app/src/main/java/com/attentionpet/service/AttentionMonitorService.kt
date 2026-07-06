@@ -15,6 +15,7 @@ import com.attentionpet.domain.ExtensionGrant
 import com.attentionpet.domain.PetState
 import com.attentionpet.domain.RuleEvaluator
 import com.attentionpet.overlay.OverlayController
+import java.time.Instant
 import java.time.ZoneId
 import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.CoroutineScope
@@ -81,11 +82,27 @@ class AttentionMonitorService : Service() {
             val sessionState = tracker.onForegroundSample(foregroundPackage, nowMillis)
 
             if (sessionState.activeStartMillis != null) {
+                val zoneId = ZoneId.systemDefault()
+                val historyWindowStart = minOf(
+                    nowMillis - ruleConfig.rollingWindowMillis,
+                    Instant.ofEpochMilli(nowMillis)
+                        .atZone(zoneId)
+                        .toLocalDate()
+                        .atStartOfDay(zoneId)
+                        .toInstant()
+                        .toEpochMilli()
+                )
+                val historicalSessions = repository.usageIntervals(
+                    packageName = target.packageName,
+                    windowStart = historyWindowStart,
+                    windowEnd = nowMillis,
+                    nowMillis = nowMillis
+                )
                 val result = RuleEvaluator.evaluate(
                     nowMillis = nowMillis,
-                    zoneId = ZoneId.systemDefault(),
+                    zoneId = zoneId,
                     config = ruleConfig,
-                    sessions = emptyList(),
+                    sessions = historicalSessions,
                     activeSession = ActiveSession(
                         startMillis = sessionState.activeStartMillis,
                         foregroundMillis = sessionState.foregroundDurationMillis

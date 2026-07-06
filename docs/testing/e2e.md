@@ -4,7 +4,7 @@
 
 The E2E suite is the regression gate for user-visible monitoring behavior. Every new feature should keep this suite passing before handoff.
 
-The current baseline uses Android instrumented tests with UI Automator because Attention Pet must verify behavior across app, system permission state, foreground service, and `TYPE_APPLICATION_OVERLAY` windows.
+The current baseline uses Android instrumented tests with UI Automator because Attention Pet must verify behavior across app, system permission state, foreground service, a separate target app, and `TYPE_APPLICATION_OVERLAY` windows.
 
 Official references:
 
@@ -47,28 +47,64 @@ Raw Gradle command:
 
 ```powershell
 $env:ANDROID_HOME='D:\Android\Sdk'
+.\gradlew.bat :fixture-shortvideo:installDebug
 .\gradlew.bat "-Pandroid.testInstrumentationRunnerArguments.class=com.attentionpet.e2e.AttentionPetOverlayE2eTest" :app:connectedDebugAndroidTest
 ```
 
-## Current Baseline Case
+## Fixture Target App
 
-`AttentionPetOverlayE2eTest.startsMonitoringAndShowsCapsulePanelOverlay`
+The E2E suite uses an in-repo fixture app instead of depending on TikTok, Douyin, Instagram, or YouTube being installed:
+
+```text
+Module: :fixture-shortvideo
+Package: com.attentionpet.fixture.shortvideo
+Launcher label: Mock Shorts
+```
+
+The helper script installs this fixture before running `:app:connectedDebugAndroidTest`.
+
+## Current Baseline Cases
+
+`AttentionPetOverlayE2eTest.startsMonitoringFixtureTargetAndShowsCapsulePanelOverlay`
 
 Flow:
 
 1. Grants Usage Access, overlay, and notification permission using shell commands.
-2. Seeds the Room repository so the configured target package is `com.attentionpet`.
+2. Seeds the Room repository so the configured target package is `com.attentionpet.fixture.shortvideo`.
 3. Launches `MainActivity`.
 4. Taps `开始陪伴`.
-5. Waits for the small overlay capsule.
-6. Taps the capsule.
-7. Waits for the expanded overlay panel.
+5. Launches the fixture target app.
+6. Waits for the small overlay capsule.
+7. Taps the capsule.
+8. Waits for the expanded overlay panel.
+
+`AttentionPetOverlayE2eTest.foregroundTimeIncreasesWhileFixtureTargetStaysOpen`
+
+Flow:
+
+1. Starts monitoring the fixture target.
+2. Opens the expanded overlay panel and reads the E2E-only session millis semantic value.
+3. Keeps the fixture target in foreground.
+4. Re-opens the panel until the session millis value has increased by at least 2 seconds.
+
+`AttentionPetOverlayE2eTest.fixtureTargetCanDriveEveryOverlayPetState`
+
+Flow:
+
+1. Re-seeds historical fixture usage for each state.
+2. Starts monitoring and launches the fixture target.
+3. Verifies the overlay exposes each expected pet state:
+   - `relaxed`
+   - `reminder`
+   - `tense`
+   - `timeout`
 
 This verifies the real chain:
 
 ```text
-Home UI -> repository config -> foreground service -> UsageStats detector ->
-SessionTracker -> RuleEvaluator -> WindowManager overlay -> UI Automator assertion
+Home UI -> repository config -> fixture target app -> foreground service ->
+UsageStats detector -> SessionTracker -> historical usage repository query ->
+RuleEvaluator -> WindowManager overlay -> UI Automator assertion
 ```
 
 ## Stable Selectors
@@ -78,15 +114,16 @@ The E2E test uses accessibility content descriptions from `AttentionPetTestIds`:
 - `attention_pet_start_monitoring`
 - `attention_pet_overlay_capsule`
 - `attention_pet_overlay_panel`
+- `attention_pet_overlay_panel_dismiss`
 - `attention_pet_timeout_sheet`
+- `attention_pet_overlay_state:<pet-state>`
+- `attention_pet_overlay_session_ms:<elapsed-millis>`
 
 New E2E-visible controls should get stable IDs in the same file rather than relying on localized text.
 
 ## Current Limits
 
-- The baseline targets the app itself (`com.attentionpet`) to avoid depending on TikTok/Douyin/Instagram being installed.
-- Timeout sheet E2E is not automated yet because the MVP enforces minimum 5-minute limits and the service does not expose a test clock.
-- Cross-app target coverage should use a small fixture app module later, for example `com.attentionpet.fixture.shortvideo`.
+- The timeout state is automated, but the timeout bottom sheet actions (`休息一下`, `再加 5 分钟`) still need a dedicated E2E case.
 - Session persistence and extension grant consumption are still next-iteration scope.
 
 ## Add A New E2E Case

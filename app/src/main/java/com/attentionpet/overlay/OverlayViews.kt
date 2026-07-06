@@ -3,6 +3,7 @@ package com.attentionpet.overlay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -49,34 +50,45 @@ fun CapsuleOverlay(
     modifier: Modifier = Modifier
 ) {
     val shape = RoundedCornerShape(topEnd = 999.dp, bottomEnd = 999.dp)
-    Row(
+    Box(
         modifier = modifier
             .width(112.dp)
             .height(46.dp)
-            .semantics { contentDescription = AttentionPetTestIds.OVERLAY_CAPSULE }
-            .clip(shape)
-            .background(stateColor(result.petState).copy(alpha = 0.78f))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically
     ) {
-        BirdPet(result.petState, Modifier.size(28.dp))
-        Column(Modifier.padding(start = 6.dp)) {
-            Text(
-                text = displayRemaining(result),
-                style = MaterialTheme.typography.labelMedium,
-                color = Color(0xFF21323A)
-            )
-            Spacer(Modifier.height(3.dp))
-            LinearProgressIndicator(
-                progress = { result.effectiveRemainingRatio.coerceIn(0f, 1f) },
-                modifier = Modifier
-                    .width(56.dp)
-                    .height(5.dp),
-                color = progressColor(result.petState),
-                trackColor = Color(0x3320323C)
-            )
+        Row(
+            modifier = Modifier
+                .width(112.dp)
+                .height(46.dp)
+                .semantics { contentDescription = AttentionPetTestIds.OVERLAY_CAPSULE }
+                .clip(shape)
+                .background(stateColor(result.petState).copy(alpha = 0.78f))
+                .clickable(onClick = onClick)
+                .padding(horizontal = 8.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BirdPet(result.petState, Modifier.size(28.dp))
+            Column(Modifier.padding(start = 6.dp)) {
+                Text(
+                    text = displayRemaining(result),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color(0xFF21323A)
+                )
+                Spacer(Modifier.height(3.dp))
+                LinearProgressIndicator(
+                    progress = { result.effectiveRemainingRatio.coerceIn(0f, 1f) },
+                    modifier = Modifier
+                        .width(56.dp)
+                        .height(5.dp),
+                    color = progressColor(result.petState),
+                    trackColor = Color(0x3320323C)
+                )
+            }
         }
+        Spacer(
+            modifier = Modifier
+                .size(1.dp)
+                .semantics { contentDescription = AttentionPetTestIds.overlayState(result.petState) }
+        )
     }
 }
 
@@ -115,7 +127,10 @@ fun ExpandedPanelOverlay(
                     color = Color(0xFF52636B)
                 )
             }
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                modifier = Modifier.semantics { contentDescription = AttentionPetTestIds.OVERLAY_PANEL_DISMISS },
+                onClick = onDismiss
+            ) {
                 Text("\u6536\u8D77")
             }
         }
@@ -130,6 +145,11 @@ fun ExpandedPanelOverlay(
                 color = Color(0xFF32434B)
             )
         }
+        Spacer(
+            modifier = Modifier
+                .size(1.dp)
+                .semantics { contentDescription = AttentionPetTestIds.overlaySessionMillis(result.session.usedMillis) }
+        )
     }
 }
 

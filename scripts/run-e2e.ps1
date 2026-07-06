@@ -42,4 +42,17 @@ if ($bootCompleted -ne "1") {
     throw "Emulator did not finish booting within 5 minutes."
 }
 
-& .\gradlew.bat "-Pandroid.testInstrumentationRunnerArguments.class=com.attentionpet.e2e.AttentionPetOverlayE2eTest" :app:connectedDebugAndroidTest
+function Invoke-GradleChecked {
+    param([string[]]$GradleArgs)
+
+    & .\gradlew.bat @GradleArgs
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+}
+
+Invoke-GradleChecked @(":fixture-shortvideo:installDebug")
+Invoke-GradleChecked @(
+    "-Pandroid.testInstrumentationRunnerArguments.class=com.attentionpet.e2e.AttentionPetOverlayE2eTest",
+    ":app:connectedDebugAndroidTest"
+)

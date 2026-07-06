@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "AttentionPet"
 include(":app")
+include(":fixture-shortvideo")
