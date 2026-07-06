@@ -217,4 +217,21 @@ class RuleEvaluatorTest {
         assertEquals(17 * 60_000L, result.rollingWindow.effectiveRemainingMillis)
         assertEquals(PetState.TENSE, result.petState)
     }
+
+    @Test
+    fun staleExtensionIsIgnoredWhenThereIsNoActiveSession() {
+        val result = RuleEvaluator.evaluate(
+            nowMillis = now,
+            zoneId = zone,
+            config = config,
+            sessions = listOf(UsageInterval(now - 31 * 60_000L, now)),
+            activeSession = null,
+            extensionGrant = ExtensionGrant(addedMillis = 5 * 60_000L, consumedForegroundMillis = 0L)
+        )
+        assertEquals(0L, result.activeExtensionRemainingMillis)
+        assertEquals(15 * 60_000L, result.session.effectiveRemainingMillis)
+        assertEquals(-1 * 60_000L, result.rollingWindow.effectiveRemainingMillis)
+        assertEquals(29 * 60_000L, result.daily.effectiveRemainingMillis)
+        assertEquals(PetState.TIMEOUT, result.petState)
+    }
 }

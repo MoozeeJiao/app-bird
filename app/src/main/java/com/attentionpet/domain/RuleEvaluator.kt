@@ -12,7 +12,7 @@ object RuleEvaluator {
         activeSession: ActiveSession?,
         extensionGrant: ExtensionGrant
     ): RuleEvaluationResult {
-        val activeExtensionRemaining = extensionGrant.remainingMillis
+        val activeExtensionRemaining = if (activeSession == null) 0L else extensionGrant.remainingMillis
         val startOfDay = Instant.ofEpochMilli(nowMillis)
             .atZone(zoneId)
             .toLocalDate()
