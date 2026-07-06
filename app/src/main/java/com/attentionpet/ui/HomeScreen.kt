@@ -19,7 +19,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.attentionpet.AttentionPetTestIds
 import com.attentionpet.permissions.PermissionSnapshot
 
 data class HomeUiState(
@@ -83,7 +86,9 @@ fun HomeScreen(
         PermissionCards(state.permissionSnapshot, onOpenUsageAccess, onOpenOverlayPermission)
         Spacer(Modifier.height(10.dp))
         Button(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { contentDescription = AttentionPetTestIds.START_MONITORING },
             enabled = state.permissionSnapshot.canStartMonitoring,
             onClick = onStartMonitoring
         ) {

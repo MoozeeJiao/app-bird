@@ -24,7 +24,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.attentionpet.AttentionPetTestIds
 import com.attentionpet.domain.PetState
 import com.attentionpet.domain.RuleBucket
 import com.attentionpet.domain.RuleEvaluationResult
@@ -50,6 +53,7 @@ fun CapsuleOverlay(
         modifier = modifier
             .width(112.dp)
             .height(46.dp)
+            .semantics { contentDescription = AttentionPetTestIds.OVERLAY_CAPSULE }
             .clip(shape)
             .background(stateColor(result.petState).copy(alpha = 0.78f))
             .clickable(onClick = onClick)
@@ -86,6 +90,7 @@ fun ExpandedPanelOverlay(
         modifier = Modifier
             .width(276.dp)
             .heightIn(min = 184.dp)
+            .semantics { contentDescription = AttentionPetTestIds.OVERLAY_PANEL }
             .background(Color.White.copy(alpha = 0.92f), RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp))
             .padding(12.dp)
     ) {
@@ -138,6 +143,7 @@ fun TimeoutSheetOverlay(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 296.dp)
+            .semantics { contentDescription = AttentionPetTestIds.TIMEOUT_SHEET }
             .background(Color(0xFFFFFAFA), RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
             .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally

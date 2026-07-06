@@ -151,8 +151,10 @@ private class OverlayLifecycleOwner : LifecycleOwner, SavedStateRegistryOwner {
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
     }
 
-    override val lifecycle: Lifecycle = lifecycleRegistry
-    override val savedStateRegistry: SavedStateRegistry = savedStateController.savedStateRegistry
+    override val lifecycle: Lifecycle
+        get() = lifecycleRegistry
+    override val savedStateRegistry: SavedStateRegistry
+        get() = savedStateController.savedStateRegistry
 
     fun handleResume() {
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
