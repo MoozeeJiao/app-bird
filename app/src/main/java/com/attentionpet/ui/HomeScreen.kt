@@ -1,5 +1,8 @@
 package com.attentionpet.ui
 
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -26,12 +30,43 @@ data class HomeUiState(
     val rollingWindowLimitMinutes: Int
 )
 
+internal data class HomeConfigState(
+    val selectedTargetPackageName: String? = null,
+    val targetAppLabel: String = HomeScreenCopy.emptyTargetLabel,
+    val dailyLimitMinutes: Int = 60,
+    val sessionLimitMinutes: Int = 15,
+    val rollingWindowLimitMinutes: Int = 30
+) {
+    fun selectTarget(app: LaunchableApp): HomeConfigState {
+        return copy(
+            selectedTargetPackageName = app.packageName,
+            targetAppLabel = app.label.ifBlank { HomeScreenCopy.emptyTargetLabel }
+        )
+    }
+
+    fun updateDailyLimit(minutes: Int): HomeConfigState {
+        return copy(dailyLimitMinutes = minutes.coerceIn(10, 180))
+    }
+
+    fun updateSessionLimit(minutes: Int): HomeConfigState {
+        return copy(sessionLimitMinutes = minutes.coerceIn(5, 60))
+    }
+
+    fun updateRollingWindowLimit(minutes: Int): HomeConfigState {
+        return copy(rollingWindowLimitMinutes = minutes.coerceIn(5, 120))
+    }
+}
+
 @Composable
 fun HomeScreen(
     state: HomeUiState,
+    availableApps: List<LaunchableApp> = emptyList(),
+    showAppPicker: Boolean = false,
     onOpenUsageAccess: () -> Unit,
     onOpenOverlayPermission: () -> Unit,
     onPickTargetApp: () -> Unit,
+    onDismissAppPicker: () -> Unit = {},
+    onTargetAppSelected: (LaunchableApp) -> Unit = {},
     onStartMonitoring: () -> Unit,
     onDailyChanged: (Int) -> Unit,
     onSessionChanged: (Int) -> Unit,
@@ -67,6 +102,14 @@ fun HomeScreen(
         RuleSlider(HomeScreenCopy.dailySliderLabel, state.dailyLimitMinutes, 10, 180, onDailyChanged)
         RuleSlider(HomeScreenCopy.sessionSliderLabel, state.sessionLimitMinutes, 5, 60, onSessionChanged)
         RuleSlider(HomeScreenCopy.rollingSliderLabel, state.rollingWindowLimitMinutes, 5, 120, onRollingChanged)
+    }
+
+    if (showAppPicker) {
+        AppPickerDialog(
+            apps = availableApps,
+            onDismiss = onDismissAppPicker,
+            onTargetAppSelected = onTargetAppSelected
+        )
     }
 }
 
@@ -117,6 +160,39 @@ private fun RuleSlider(label: String, value: Int, min: Int, max: Int, onChanged:
     }
 }
 
+@Composable
+private fun AppPickerDialog(
+    apps: List<LaunchableApp>,
+    onDismiss: () -> Unit,
+    onTargetAppSelected: (LaunchableApp) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(HomeScreenCopy.targetCardTitle) },
+        text = {
+            if (apps.isEmpty()) {
+                Text(HomeScreenCopy.emptyTargetLabel)
+            } else {
+                LazyColumn {
+                    items(apps) { app ->
+                        TextButton(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { onTargetAppSelected(app) }
+                        ) {
+                            Text(app.label)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(HomeScreenCopy.dismissPickerCta)
+            }
+        }
+    )
+}
+
 internal object HomeScreenCopy {
     const val subtitle = "\u5C0F\u9E1F\u966A\u4F60\u5B88\u4F4F\u65F6\u95F4\u8FB9\u754C"
     const val startCta = "\u5F00\u59CB\u966A\u4F34"
@@ -132,6 +208,7 @@ internal object HomeScreenCopy {
     const val overlayPermissionTitle = "\u60AC\u6D6E\u7A97\u6743\u9650"
     const val overlayPermissionCta = "\u53BB\u5F00\u542F"
     const val grantedLabel = "\u5DF2\u5F00\u542F"
+    const val dismissPickerCta = "\u53D6\u6D88"
 
     fun ruleValueText(label: String, value: Int): String = "$label  $value $minutesSuffix"
 }

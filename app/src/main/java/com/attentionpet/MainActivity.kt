@@ -9,12 +9,17 @@ import androidx.compose.runtime.setValue
 import com.attentionpet.permissions.PermissionSnapshot
 import com.attentionpet.permissions.PermissionState
 import com.attentionpet.ui.AttentionPetTheme
+import com.attentionpet.ui.AppPicker
+import com.attentionpet.ui.HomeConfigState
 import com.attentionpet.ui.HomeScreen
-import com.attentionpet.ui.HomeScreenCopy
 import com.attentionpet.ui.HomeUiState
+import com.attentionpet.ui.LaunchableApp
 
 class MainActivity : ComponentActivity() {
     private var permissionSnapshot by mutableStateOf(PermissionSnapshot(false, false))
+    private var homeConfig by mutableStateOf(HomeConfigState())
+    private var showAppPicker by mutableStateOf(false)
+    private var launchableApps by mutableStateOf<List<LaunchableApp>>(emptyList())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,18 +37,28 @@ class MainActivity : ComponentActivity() {
                 HomeScreen(
                     state = HomeUiState(
                         permissionSnapshot = permissionSnapshot,
-                        targetAppLabel = HomeScreenCopy.emptyTargetLabel,
-                        dailyLimitMinutes = 60,
-                        sessionLimitMinutes = 15,
-                        rollingWindowLimitMinutes = 30
+                        targetAppLabel = homeConfig.targetAppLabel,
+                        dailyLimitMinutes = homeConfig.dailyLimitMinutes,
+                        sessionLimitMinutes = homeConfig.sessionLimitMinutes,
+                        rollingWindowLimitMinutes = homeConfig.rollingWindowLimitMinutes
                     ),
+                    availableApps = launchableApps,
+                    showAppPicker = showAppPicker,
                     onOpenUsageAccess = { startActivity(PermissionState.usageAccessSettingsIntent()) },
                     onOpenOverlayPermission = { startActivity(PermissionState.overlaySettingsIntent(this)) },
-                    onPickTargetApp = {},
+                    onPickTargetApp = {
+                        launchableApps = AppPicker.launchableApps(this)
+                        showAppPicker = true
+                    },
+                    onDismissAppPicker = { showAppPicker = false },
+                    onTargetAppSelected = { app ->
+                        homeConfig = homeConfig.selectTarget(app)
+                        showAppPicker = false
+                    },
                     onStartMonitoring = {},
-                    onDailyChanged = {},
-                    onSessionChanged = {},
-                    onRollingChanged = {}
+                    onDailyChanged = { homeConfig = homeConfig.updateDailyLimit(it) },
+                    onSessionChanged = { homeConfig = homeConfig.updateSessionLimit(it) },
+                    onRollingChanged = { homeConfig = homeConfig.updateRollingWindowLimit(it) }
                 )
             }
         }
