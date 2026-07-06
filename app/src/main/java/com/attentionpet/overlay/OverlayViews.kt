@@ -31,6 +31,14 @@ import com.attentionpet.domain.RuleEvaluationResult
 import com.attentionpet.pet.BirdPet
 import kotlin.math.abs
 
+internal object TimeoutSheetCopy {
+    const val title = "\u5DF2\u7ECF\u8D85\u65F6\u5566"
+    const val question = "\u8981\u4E0D\u8981\u4F11\u606F\u4E00\u4E0B\uFF1F"
+    const val defaultFeedback = "\u5C0F\u9E1F\u6709\u70B9\u7740\u6025\u4E86\uFF0C\u5148\u628A\u65F6\u95F4\u8FB9\u754C\u6536\u56DE\u6765\u3002"
+    const val restButton = "\u4F11\u606F\u4E00\u4E0B"
+    const val extendButton = "\u518D\u52A0 5 \u5206\u949F"
+}
+
 @Composable
 fun CapsuleOverlay(
     result: RuleEvaluationResult,
@@ -123,12 +131,13 @@ fun ExpandedPanelOverlay(
 @Composable
 fun TimeoutSheetOverlay(
     onRest: () -> Unit,
-    onExtend: () -> Unit
+    onExtend: () -> Unit,
+    feedbackText: String = TimeoutSheetCopy.defaultFeedback
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 276.dp)
+            .heightIn(min = 296.dp)
             .background(Color(0xFFFFFAFA), RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
             .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -136,14 +145,20 @@ fun TimeoutSheetOverlay(
         BirdPet(PetState.TIMEOUT, Modifier.size(84.dp))
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "\u5DF2\u7ECF\u8D85\u65F6\u5566",
+            text = TimeoutSheetCopy.title,
             style = MaterialTheme.typography.headlineSmall,
             color = Color(0xFF21323A)
         )
         Text(
-            text = "\u8981\u4E0D\u8981\u4F11\u606F\u4E00\u4E0B\uFF1F",
+            text = TimeoutSheetCopy.question,
             style = MaterialTheme.typography.bodyMedium,
             color = Color(0xFF52636B)
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = feedbackText,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color(0xFF8B4A42)
         )
         Spacer(Modifier.height(18.dp))
         Row(
@@ -153,10 +168,10 @@ fun TimeoutSheetOverlay(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Button(onClick = onRest, modifier = Modifier.weight(1f)) {
-                Text("\u4F11\u606F\u4E00\u4E0B")
+                Text(TimeoutSheetCopy.restButton)
             }
             Button(onClick = onExtend, modifier = Modifier.weight(1f)) {
-                Text("\u518D\u52A0 5 \u5206\u949F")
+                Text(TimeoutSheetCopy.extendButton)
             }
         }
     }

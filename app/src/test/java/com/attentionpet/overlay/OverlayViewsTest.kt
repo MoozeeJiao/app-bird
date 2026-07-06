@@ -49,6 +49,18 @@ class OverlayViewsTest {
         )
     }
 
+    @Test
+    fun timeoutSheetCopyIncludesRequiredLabelsAndBirdFeedback() {
+        assertEquals("\u5DF2\u7ECF\u8D85\u65F6\u5566", TimeoutSheetCopy.title)
+        assertEquals("\u8981\u4E0D\u8981\u4F11\u606F\u4E00\u4E0B\uFF1F", TimeoutSheetCopy.question)
+        assertEquals(
+            "\u5C0F\u9E1F\u6709\u70B9\u7740\u6025\u4E86\uFF0C\u5148\u628A\u65F6\u95F4\u8FB9\u754C\u6536\u56DE\u6765\u3002",
+            TimeoutSheetCopy.defaultFeedback
+        )
+        assertEquals("\u4F11\u606F\u4E00\u4E0B", TimeoutSheetCopy.restButton)
+        assertEquals("\u518D\u52A0 5 \u5206\u949F", TimeoutSheetCopy.extendButton)
+    }
+
     private fun result(
         daily: RuleBucket = bucket(RuleType.DAILY, usedMinutes = 10, limitMinutes = 60),
         session: RuleBucket = bucket(RuleType.SESSION, usedMinutes = 5, limitMinutes = 15),
