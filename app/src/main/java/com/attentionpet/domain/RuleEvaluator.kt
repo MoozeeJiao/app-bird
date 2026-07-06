@@ -34,7 +34,6 @@ object RuleEvaluator {
         val triggering = ordered.minWith(compareBy<RuleBucket> { it.effectiveRemainingMillis }.thenBy { tieRank(it.type) })
         val state = when {
             ordered.any { it.effectiveRemainingMillis <= 0L } -> PetState.TIMEOUT
-            ordered.any { it.rawRemainingMillis <= 0L } -> PetState.TENSE
             triggering.effectiveRemainingRatio < 0.20f -> PetState.TENSE
             triggering.effectiveRemainingRatio <= 0.50f -> PetState.REMINDER
             else -> PetState.RELAXED
