@@ -6,6 +6,11 @@ import com.attentionpet.domain.UsageInterval
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 
+data class AttentionPetConfigSnapshot(
+    val targetApp: TargetAppConfigEntity,
+    val limits: LimitConfigEntity
+)
+
 class AttentionPetRepository(
     private val configDao: ConfigDao,
     private val sessionDao: SessionDao,
@@ -15,6 +20,40 @@ class AttentionPetRepository(
     fun limits(): Flow<LimitConfigEntity?> = configDao.limits()
 
     suspend fun config(): RuleConfig? = configDao.limits().first()?.toRuleConfig()
+
+    suspend fun ensureDefaultMvpConfig(): AttentionPetConfigSnapshot {
+        val target = configDao.targetApp().first() ?: defaultTargetApp().also {
+            configDao.upsertTargetApp(it)
+        }
+        val limits = configDao.limits().first() ?: defaultLimits().also {
+            configDao.upsertLimits(it)
+        }
+        return AttentionPetConfigSnapshot(targetApp = target, limits = limits)
+    }
+
+    suspend fun saveHomeConfig(
+        packageName: String,
+        displayName: String,
+        dailyMinutes: Int,
+        sessionMinutes: Int,
+        rollingWindowLimitMinutes: Int
+    ): AttentionPetConfigSnapshot {
+        val target = TargetAppConfigEntity(
+            packageName = packageName,
+            displayName = displayName,
+            enabled = true
+        )
+        val limits = LimitConfigEntity(
+            dailyLimitMinutes = dailyMinutes,
+            sessionLimitMinutes = sessionMinutes,
+            rollingWindowHours = DEFAULT_ROLLING_WINDOW_HOURS,
+            rollingWindowLimitMinutes = rollingWindowLimitMinutes
+        )
+
+        configDao.upsertTargetApp(target)
+        configDao.upsertLimits(limits)
+        return AttentionPetConfigSnapshot(targetApp = target, limits = limits)
+    }
 
     suspend fun overlayPosition(): OverlayPositionEntity? = eventDao.overlayPosition()
 
@@ -101,5 +140,31 @@ class AttentionPetRepository(
 
     suspend fun recordTimeoutAction(sessionId: Long, timestampMillis: Long, actionType: String, overageDurationMillis: Long) {
         eventDao.insertTimeoutAction(TimeoutActionEventEntity(sessionId = sessionId, timestampMillis = timestampMillis, actionType = actionType, overageDurationMillis = overageDurationMillis))
+    }
+
+    private fun defaultTargetApp(): TargetAppConfigEntity {
+        return TargetAppConfigEntity(
+            packageName = DEFAULT_TARGET_PACKAGE_NAME,
+            displayName = DEFAULT_TARGET_DISPLAY_NAME,
+            enabled = true
+        )
+    }
+
+    private fun defaultLimits(): LimitConfigEntity {
+        return LimitConfigEntity(
+            dailyLimitMinutes = DEFAULT_DAILY_LIMIT_MINUTES,
+            sessionLimitMinutes = DEFAULT_SESSION_LIMIT_MINUTES,
+            rollingWindowHours = DEFAULT_ROLLING_WINDOW_HOURS,
+            rollingWindowLimitMinutes = DEFAULT_ROLLING_WINDOW_LIMIT_MINUTES
+        )
+    }
+
+    companion object {
+        const val DEFAULT_TARGET_PACKAGE_NAME = "com.ss.android.ugc.aweme"
+        const val DEFAULT_TARGET_DISPLAY_NAME = "\u6296\u97F3"
+        const val DEFAULT_DAILY_LIMIT_MINUTES = 60
+        const val DEFAULT_SESSION_LIMIT_MINUTES = 15
+        const val DEFAULT_ROLLING_WINDOW_LIMIT_MINUTES = 30
+        const val DEFAULT_ROLLING_WINDOW_HOURS = 5
     }
 }

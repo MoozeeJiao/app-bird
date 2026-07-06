@@ -10,6 +10,41 @@ import org.junit.Test
 
 class AttentionPetRepositoryTest {
     @Test
+    fun ensureDefaultMvpConfigCreatesMissingTargetAndLimits() = runTest {
+        val repository = AttentionPetRepository(FakeConfigDao(), FakeSessionDao(), FakeEventDao())
+
+        val snapshot = repository.ensureDefaultMvpConfig()
+
+        assertEquals("com.ss.android.ugc.aweme", snapshot.targetApp.packageName)
+        assertEquals("\u6296\u97F3", snapshot.targetApp.displayName)
+        assertEquals(true, snapshot.targetApp.enabled)
+        assertEquals(60, snapshot.limits.dailyLimitMinutes)
+        assertEquals(15, snapshot.limits.sessionLimitMinutes)
+        assertEquals(5, snapshot.limits.rollingWindowHours)
+        assertEquals(30, snapshot.limits.rollingWindowLimitMinutes)
+    }
+
+    @Test
+    fun saveHomeConfigPersistsTargetAndLimitRowsTogether() = runTest {
+        val repository = AttentionPetRepository(FakeConfigDao(), FakeSessionDao(), FakeEventDao())
+
+        val snapshot = repository.saveHomeConfig(
+            packageName = "com.example.video",
+            displayName = "\u89C6\u9891",
+            dailyMinutes = 45,
+            sessionMinutes = 12,
+            rollingWindowLimitMinutes = 25
+        )
+
+        assertEquals("com.example.video", snapshot.targetApp.packageName)
+        assertEquals("\u89C6\u9891", snapshot.targetApp.displayName)
+        assertEquals(true, snapshot.targetApp.enabled)
+        assertEquals(45, snapshot.limits.dailyLimitMinutes)
+        assertEquals(12, snapshot.limits.sessionLimitMinutes)
+        assertEquals(25, snapshot.limits.rollingWindowLimitMinutes)
+    }
+
+    @Test
     fun readsAndWritesOverlayPosition() = runTest {
         val eventDao = FakeEventDao()
         val repository = AttentionPetRepository(FakeConfigDao(), FakeSessionDao(), eventDao)

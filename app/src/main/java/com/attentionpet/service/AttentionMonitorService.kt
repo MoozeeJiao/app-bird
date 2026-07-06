@@ -8,11 +8,11 @@ import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import com.attentionpet.AttentionPetApp
 import com.attentionpet.R
 import com.attentionpet.domain.ActiveSession
 import com.attentionpet.domain.ExtensionGrant
 import com.attentionpet.domain.PetState
-import com.attentionpet.domain.RuleConfig
 import com.attentionpet.domain.RuleEvaluator
 import com.attentionpet.overlay.OverlayController
 import java.time.ZoneId
@@ -22,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -31,13 +32,11 @@ class AttentionMonitorService : Service() {
     private val scope = CoroutineScope(serviceJob + Dispatchers.IO)
     private var pollingJob: Job? = null
     private lateinit var detector: ForegroundAppDetector
-    private lateinit var tracker: SessionTracker
     private lateinit var overlayController: OverlayController
 
     override fun onCreate() {
         super.onCreate()
         detector = ForegroundAppDetector(this)
-        tracker = SessionTracker(TARGET_PACKAGE, RULE_CONFIG.sessionGraceMillis)
         overlayController = OverlayController(this)
         ensureNotificationChannel()
     }
@@ -62,6 +61,20 @@ class AttentionMonitorService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private suspend fun pollForegroundApp() {
+        val repository = (application as AttentionPetApp).repository
+        val target = repository.targetApp().first()
+        val limits = repository.limits().first()
+        if (target == null || !target.enabled || limits == null) {
+            withContext(Dispatchers.Main.immediate) {
+                overlayController.hideAll()
+                stopSelf()
+            }
+            return
+        }
+
+        val ruleConfig = with(repository) { limits.toRuleConfig() }
+        val tracker = SessionTracker(target.packageName, ruleConfig.sessionGraceMillis)
+
         while (coroutineContext.isActive) {
             val nowMillis = System.currentTimeMillis()
             val foregroundPackage = detector.currentForegroundPackage(nowMillis)
@@ -71,7 +84,7 @@ class AttentionMonitorService : Service() {
                 val result = RuleEvaluator.evaluate(
                     nowMillis = nowMillis,
                     zoneId = ZoneId.systemDefault(),
-                    config = RULE_CONFIG,
+                    config = ruleConfig,
                     sessions = emptyList(),
                     activeSession = ActiveSession(
                         startMillis = sessionState.activeStartMillis,
@@ -83,8 +96,14 @@ class AttentionMonitorService : Service() {
                     overlayController.showCapsule(result) {
                         if (result.petState == PetState.TIMEOUT) {
                             overlayController.showTimeoutSheet(
-                                onRest = { overlayController.hideTimeoutSheet() },
-                                onExtend = { overlayController.hideTimeoutSheet() }
+                                onRest = {
+                                    // Session persistence id is wired in the next iteration; MVP visual behavior remains non-blocking here.
+                                    overlayController.hideTimeoutSheet()
+                                },
+                                onExtend = {
+                                    // Session persistence id is wired in the next iteration; MVP visual behavior remains non-blocking here.
+                                    overlayController.hideTimeoutSheet()
+                                }
                             )
                         } else {
                             overlayController.showPanel(
@@ -131,14 +150,8 @@ class AttentionMonitorService : Service() {
     companion object {
         private const val CHANNEL_ID = "attention_pet_monitor"
         private const val NOTIFICATION_ID = 1
-        private const val TARGET_PACKAGE = "com.ss.android.ugc.aweme"
         private const val POLL_INTERVAL_MILLIS = 1_000L
         private const val MILLIS_PER_MINUTE = 60_000L
-        private val RULE_CONFIG = RuleConfig(
-            dailyLimitMillis = 60L * MILLIS_PER_MINUTE,
-            sessionLimitMillis = 15L * MILLIS_PER_MINUTE,
-            rollingWindowLimitMillis = 30L * MILLIS_PER_MINUTE
-        )
 
         fun start(context: Context) {
             context.startForegroundService(Intent(context, AttentionMonitorService::class.java))
