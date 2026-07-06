@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "f27150fe676b2cba6c3b51657cf97e70",
+    "identityHash": "840e80d4817facda3c6d570ca19897f9",
     "entities": [
       {
         "tableName": "target_app_config",
@@ -169,7 +169,18 @@
           "columnNames": [
             "id"
           ]
-        }
+        },
+        "indices": [
+          {
+            "name": "index_extension_event_sessionId",
+            "unique": true,
+            "columnNames": [
+              "sessionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_extension_event_sessionId` ON `${TABLE_NAME}` (`sessionId`)"
+          }
+        ]
       },
       {
         "tableName": "timeout_action_event",
@@ -252,7 +263,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f27150fe676b2cba6c3b51657cf97e70')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '840e80d4817facda3c6d570ca19897f9')"
     ]
   }
 }

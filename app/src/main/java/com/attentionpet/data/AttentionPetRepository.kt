@@ -16,6 +16,12 @@ class AttentionPetRepository(
 
     suspend fun config(): RuleConfig? = configDao.limits().first()?.toRuleConfig()
 
+    suspend fun overlayPosition(): OverlayPositionEntity? = eventDao.overlayPosition()
+
+    suspend fun saveOverlayPosition(entity: OverlayPositionEntity) {
+        eventDao.upsertOverlayPosition(entity)
+    }
+
     suspend fun saveTargetApp(packageName: String, displayName: String, enabled: Boolean) {
         configDao.upsertTargetApp(TargetAppConfigEntity(packageName = packageName, displayName = displayName, enabled = enabled))
     }
@@ -43,6 +49,16 @@ class AttentionPetRepository(
         return UsageInterval(startMillis = startMillis, endMillis = endMillis ?: nowMillis)
     }
 
+    suspend fun usageIntervals(
+        packageName: String,
+        windowStart: Long,
+        windowEnd: Long,
+        nowMillis: Long
+    ): List<UsageInterval> {
+        return sessionDao.sessionsOverlapping(packageName, windowStart, windowEnd)
+            .map { it.toUsageInterval(nowMillis) }
+    }
+
     suspend fun openSession(packageName: String, startMillis: Long): Long {
         return sessionDao.insert(
             UsageSessionEntity(
@@ -63,7 +79,7 @@ class AttentionPetRepository(
     suspend fun recordExtension(sessionId: Long, timestampMillis: Long): Long {
         val existing = eventDao.extensionForSession(sessionId)
         if (existing != null) return existing.id
-        return eventDao.insertExtension(
+        val insertedId = eventDao.insertExtension(
             ExtensionEventEntity(
                 sessionId = sessionId,
                 timestampMillis = timestampMillis,
@@ -71,6 +87,11 @@ class AttentionPetRepository(
                 consumedForegroundMillis = 0L
             )
         )
+        if (insertedId != -1L) return insertedId
+
+        return checkNotNull(eventDao.extensionForSession(sessionId)) {
+            "Extension insert ignored but no existing extension found for session $sessionId"
+        }.id
     }
 
     suspend fun extensionGrant(sessionId: Long): ExtensionGrant {

@@ -1,6 +1,7 @@
 package com.attentionpet.data
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "target_app_config")
@@ -30,7 +31,10 @@ data class UsageSessionEntity(
     val closeReason: String
 )
 
-@Entity(tableName = "extension_event")
+@Entity(
+    tableName = "extension_event",
+    indices = [Index(value = ["sessionId"], unique = true)]
+)
 data class ExtensionEventEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
     val sessionId: Long,
