@@ -26,27 +26,40 @@ fun BirdPet(state: PetState, modifier: Modifier = Modifier) {
     }
 }
 
+internal data class BirdPalette(
+    val body: Color,
+    val wing: Color
+)
+
+internal fun birdPaletteFor(state: PetState): BirdPalette = when (state) {
+    PetState.RELAXED -> BirdPalette(
+        body = Color(0xFF62DDB3),
+        wing = Color(0xFF44C79A)
+    )
+    PetState.REMINDER -> BirdPalette(
+        body = Color(0xFFFFD76F),
+        wing = Color(0xFFFFBD58)
+    )
+    PetState.TENSE -> BirdPalette(
+        body = Color(0xFFFFB066),
+        wing = Color(0xFFFF8A4C)
+    )
+    PetState.TIMEOUT -> BirdPalette(
+        body = Color(0xFFFF9A7B),
+        wing = Color(0xFFF45E63)
+    )
+}
+
 private fun DrawScope.drawBird(state: PetState, scale: Float) {
-    val body = when (state) {
-        PetState.RELAXED -> Color(0xFF62DDB3)
-        PetState.REMINDER -> Color(0xFF9BE391)
-        PetState.TENSE -> Color(0xFFFFD76F)
-        PetState.TIMEOUT -> Color(0xFFFF9A7B)
-    }
-    val wing = when (state) {
-        PetState.RELAXED -> Color(0xFF44C79A)
-        PetState.REMINDER -> Color(0xFF77D873)
-        PetState.TENSE -> Color(0xFFFFBD58)
-        PetState.TIMEOUT -> Color(0xFFF45E63)
-    }
+    val palette = birdPaletteFor(state)
     fun x(value: Float) = value * scale
 
-    drawOval(body, topLeft = Offset(x(13f), x(13f)), size = Size(x(56f), x(58f)))
+    drawOval(palette.body, topLeft = Offset(x(13f), x(13f)), size = Size(x(56f), x(58f)))
     rotate(-18f, pivot = Offset(x(42f), x(12f))) {
-        drawOval(wing, topLeft = Offset(x(36f), x(5f)), size = Size(x(11f), x(14f)))
+        drawOval(palette.wing, topLeft = Offset(x(36f), x(5f)), size = Size(x(11f), x(14f)))
     }
     rotate(if (state == PetState.TIMEOUT) -54f else -13f, pivot = Offset(x(23f), x(50f))) {
-        drawOval(wing, topLeft = Offset(x(9f), x(39f)), size = Size(x(27f), x(22f)))
+        drawOval(palette.wing, topLeft = Offset(x(9f), x(39f)), size = Size(x(27f), x(22f)))
     }
     drawOval(Color.White.copy(alpha = 0.54f), topLeft = Offset(x(29f), x(44f)), size = Size(x(25f), x(17f)))
     drawCircle(Color(0xFF21323A), radius = x(3f), center = Offset(x(38.5f), x(37f)))
