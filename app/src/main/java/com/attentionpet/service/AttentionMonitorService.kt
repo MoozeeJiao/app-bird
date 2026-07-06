@@ -16,6 +16,7 @@ import com.attentionpet.domain.RuleConfig
 import com.attentionpet.domain.RuleEvaluator
 import com.attentionpet.overlay.OverlayController
 import java.time.ZoneId
+import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -23,10 +24,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class AttentionMonitorService : Service() {
     private val serviceJob = SupervisorJob()
-    private val scope = CoroutineScope(serviceJob + Dispatchers.Main.immediate)
+    private val scope = CoroutineScope(serviceJob + Dispatchers.IO)
     private var pollingJob: Job? = null
     private lateinit var detector: ForegroundAppDetector
     private lateinit var tracker: SessionTracker
@@ -60,7 +62,7 @@ class AttentionMonitorService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private suspend fun pollForegroundApp() {
-        while (scope.isActive) {
+        while (coroutineContext.isActive) {
             val nowMillis = System.currentTimeMillis()
             val foregroundPackage = detector.currentForegroundPackage(nowMillis)
             val sessionState = tracker.onForegroundSample(foregroundPackage, nowMillis)
@@ -77,21 +79,25 @@ class AttentionMonitorService : Service() {
                     ),
                     extensionGrant = ExtensionGrant()
                 )
-                overlayController.showCapsule(result) {
-                    if (result.petState == PetState.TIMEOUT) {
-                        overlayController.showTimeoutSheet(
-                            onRest = { overlayController.hideTimeoutSheet() },
-                            onExtend = { overlayController.hideTimeoutSheet() }
-                        )
-                    } else {
-                        overlayController.showPanel(
-                            result = result,
-                            currentSessionText = sessionMinutesText(sessionState.foregroundDurationMillis)
-                        )
+                withContext(Dispatchers.Main.immediate) {
+                    overlayController.showCapsule(result) {
+                        if (result.petState == PetState.TIMEOUT) {
+                            overlayController.showTimeoutSheet(
+                                onRest = { overlayController.hideTimeoutSheet() },
+                                onExtend = { overlayController.hideTimeoutSheet() }
+                            )
+                        } else {
+                            overlayController.showPanel(
+                                result = result,
+                                currentSessionText = sessionMinutesText(sessionState.foregroundDurationMillis)
+                            )
+                        }
                     }
                 }
             } else {
-                overlayController.hideAll()
+                withContext(Dispatchers.Main.immediate) {
+                    overlayController.hideAll()
+                }
             }
 
             delay(POLL_INTERVAL_MILLIS)
@@ -111,7 +117,7 @@ class AttentionMonitorService : Service() {
 
     private fun notification(): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_attention_pet)
             .setContentTitle("Attention Pet \u6B63\u5728\u5B88\u62A4\u65F6\u95F4\u8FB9\u754C")
             .setContentText("\u5C0F\u9E1F\u4F1A\u5728\u76EE\u6807 App \u6253\u5F00\u65F6\u51FA\u73B0\u5728\u5C4F\u5E55\u8FB9\u7F18")
             .setOngoing(true)
