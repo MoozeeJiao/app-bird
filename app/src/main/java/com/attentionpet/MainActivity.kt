@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.attentionpet.permissions.PermissionSnapshot
 import com.attentionpet.permissions.PermissionState
+import com.attentionpet.service.AttentionMonitorService
 import com.attentionpet.ui.AttentionPetTheme
 import com.attentionpet.ui.AppPicker
 import com.attentionpet.ui.HomeConfigState
@@ -55,7 +56,7 @@ class MainActivity : ComponentActivity() {
                         homeConfig = homeConfig.selectTarget(app)
                         showAppPicker = false
                     },
-                    onStartMonitoring = {},
+                    onStartMonitoring = { AttentionMonitorService.start(this) },
                     onDailyChanged = { homeConfig = homeConfig.updateDailyLimit(it) },
                     onSessionChanged = { homeConfig = homeConfig.updateSessionLimit(it) },
                     onRollingChanged = { homeConfig = homeConfig.updateRollingWindowLimit(it) }

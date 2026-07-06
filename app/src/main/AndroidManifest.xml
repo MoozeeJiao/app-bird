@@ -32,6 +32,10 @@
         <service
             android:name=".service.AttentionMonitorService"
             android:exported="false"
-            android:foregroundServiceType="specialUse" />
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="usage_access_polling_and_attention_overlay" />
+        </service>
     </application>
 </manifest>
