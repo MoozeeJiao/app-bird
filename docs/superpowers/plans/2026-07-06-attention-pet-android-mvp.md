@@ -21,7 +21,7 @@
 - Overlay windows remain `FLAG_NOT_FOCUSABLE`; hardware/gesture navigation events are not required for overlay dismissal.
 - Capsule defaults to the left edge and uses a small `WRAP_CONTENT` overlay window, not a full-screen touch-consuming window.
 - Monitoring starts only when Usage Access and Display over other apps permissions are both granted.
-- Development references verified from official docs: AGP current release 9.2.1 and AGP 9.2 compatibility require Gradle 9.4.1/JDK 17; AGP 9 built-in Kotlin uses KGP 2.2.10 and matches KSP to `2.2.10-2.0.2`; Compose April 2026 BOM is `2026.04.01`; Room 2.x stable release used here is `2.8.1`.
+- Development references verified from official docs: AGP current release 9.2.1 and AGP 9.2 compatibility require Gradle 9.4.1/JDK 17; AGP 9 built-in Kotlin is enabled by default and requires KSP `2.3.1` or newer for built-in Kotlin support; this project uses KSP `2.3.9`; Compose April 2026 BOM is `2026.04.01`; Room 2.x stable release used here is `2.8.1`.
 
 ---
 
@@ -157,7 +157,7 @@ include(":app")
 ```kotlin
 plugins {
     id("com.android.application") version "9.2.1" apply false
-    id("com.google.devtools.ksp") version "2.2.10-2.0.2" apply false
+    id("com.google.devtools.ksp") version "2.3.9" apply false
 }
 ```
 
