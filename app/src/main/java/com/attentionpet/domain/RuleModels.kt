@@ -1,10 +1,10 @@
 package com.attentionpet.domain
 
 enum class PetState(val serialized: String, val labelZh: String) {
-    RELAXED("relaxed", "\u7039\u590A\u53CF / \u93C0\u70AC\u6F97"),
-    REMINDER("reminder", "\u93BB\u6130\u554B"),
-    TENSE("tense", "\u7EF1\u0443\u7D36"),
-    TIMEOUT("timeout", "\u74D2\u546E\u6902")
+    RELAXED("relaxed", "\u5B89\u5168 / \u653E\u677E"),
+    REMINDER("reminder", "\u63D0\u9192"),
+    TENSE("tense", "\u7D27\u5F20"),
+    TIMEOUT("timeout", "\u8D85\u65F6")
 }
 
 enum class RuleType {
