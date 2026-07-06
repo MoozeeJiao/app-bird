@@ -2,6 +2,7 @@ package com.attentionpet.data
 
 import androidx.room.Dao
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
@@ -18,4 +19,10 @@ interface ConfigDao {
 
     @Upsert
     suspend fun upsertLimits(entity: LimitConfigEntity)
+
+    @Transaction
+    suspend fun upsertHomeConfig(target: TargetAppConfigEntity, limits: LimitConfigEntity) {
+        upsertTargetApp(target)
+        upsertLimits(limits)
+    }
 }

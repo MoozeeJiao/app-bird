@@ -6,13 +6,17 @@ import androidx.lifecycle.viewModelScope
 import com.attentionpet.data.AttentionPetConfigSnapshot
 import com.attentionpet.data.AttentionPetRepository
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 class MainViewModel(
@@ -22,6 +26,9 @@ class MainViewModel(
     private val _homeConfig = MutableStateFlow(defaultHomeConfig())
     internal val homeConfig: StateFlow<HomeConfigState> = _homeConfig.asStateFlow()
     private val userEditedConfig = AtomicBoolean(false)
+    private val configVersion = AtomicLong(0L)
+    private val saveMutex = Mutex()
+    private var pendingSaveJob: Job? = null
 
     private val initializationJob: Job = viewModelScope.launch(ioDispatcher) {
         val savedConfig = repository.ensureDefaultMvpConfig().toHomeConfigState()
@@ -34,44 +41,53 @@ class MainViewModel(
         userEditedConfig.set(true)
         val updated = _homeConfig.value.selectTarget(app)
         _homeConfig.value = updated
-        saveCurrentConfigAsync(updated)
+        saveCurrentConfigAsync(updated, configVersion.incrementAndGet())
     }
 
     fun onDailyLimitChanged(minutes: Int) {
         userEditedConfig.set(true)
         val updated = _homeConfig.value.updateDailyLimit(minutes)
         _homeConfig.value = updated
-        saveCurrentConfigAsync(updated)
+        saveCurrentConfigAsync(updated, configVersion.incrementAndGet())
     }
 
     fun onSessionLimitChanged(minutes: Int) {
         userEditedConfig.set(true)
         val updated = _homeConfig.value.updateSessionLimit(minutes)
         _homeConfig.value = updated
-        saveCurrentConfigAsync(updated)
+        saveCurrentConfigAsync(updated, configVersion.incrementAndGet())
     }
 
     fun onRollingWindowLimitChanged(minutes: Int) {
         userEditedConfig.set(true)
         val updated = _homeConfig.value.updateRollingWindowLimit(minutes)
         _homeConfig.value = updated
-        saveCurrentConfigAsync(updated)
+        saveCurrentConfigAsync(updated, configVersion.incrementAndGet())
     }
 
     fun onStartMonitoring(startService: () -> Unit) {
         viewModelScope.launch {
             initializationJob.join()
+            pendingSaveJob?.cancelAndJoin()
+            configVersion.incrementAndGet()
             withContext(ioDispatcher) {
-                repository.saveHomeConfig(_homeConfig.value)
+                saveMutex.withLock {
+                    repository.saveHomeConfig(_homeConfig.value)
+                }
             }
             startService()
         }
     }
 
-    private fun saveCurrentConfigAsync(config: HomeConfigState) {
-        viewModelScope.launch(ioDispatcher) {
+    private fun saveCurrentConfigAsync(config: HomeConfigState, version: Long) {
+        pendingSaveJob?.cancel()
+        pendingSaveJob = viewModelScope.launch(ioDispatcher) {
             initializationJob.join()
-            repository.saveHomeConfig(config)
+            saveMutex.withLock {
+                if (version == configVersion.get()) {
+                    repository.saveHomeConfig(config)
+                }
+            }
         }
     }
 

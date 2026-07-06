@@ -45,6 +45,39 @@ class AttentionPetRepositoryTest {
     }
 
     @Test
+    fun saveHomeConfigUsesAtomicConfigDaoWrite() = runTest {
+        val configDao = FakeConfigDao()
+        val repository = AttentionPetRepository(configDao, FakeSessionDao(), FakeEventDao())
+
+        repository.saveHomeConfig(
+            packageName = "com.example.video",
+            displayName = "\u89C6\u9891",
+            dailyMinutes = 45,
+            sessionMinutes = 12,
+            rollingWindowLimitMinutes = 25
+        )
+
+        assertEquals(1, configDao.homeConfigUpsertCount)
+    }
+
+    @Test
+    fun saveHomeConfigCoercesLimitsToLegalRanges() = runTest {
+        val repository = AttentionPetRepository(FakeConfigDao(), FakeSessionDao(), FakeEventDao())
+
+        val snapshot = repository.saveHomeConfig(
+            packageName = "com.example.video",
+            displayName = "\u89C6\u9891",
+            dailyMinutes = -1,
+            sessionMinutes = 500,
+            rollingWindowLimitMinutes = 0
+        )
+
+        assertEquals(10, snapshot.limits.dailyLimitMinutes)
+        assertEquals(60, snapshot.limits.sessionLimitMinutes)
+        assertEquals(5, snapshot.limits.rollingWindowLimitMinutes)
+    }
+
+    @Test
     fun readsAndWritesOverlayPosition() = runTest {
         val eventDao = FakeEventDao()
         val repository = AttentionPetRepository(FakeConfigDao(), FakeSessionDao(), eventDao)
@@ -129,10 +162,17 @@ class AttentionPetRepositoryTest {
 private class FakeConfigDao : ConfigDao {
     private val targetApp = MutableStateFlow<TargetAppConfigEntity?>(null)
     private val limits = MutableStateFlow<LimitConfigEntity?>(null)
+    var homeConfigUpsertCount = 0
 
     override fun targetApp(): Flow<TargetAppConfigEntity?> = targetApp
 
     override fun limits(): Flow<LimitConfigEntity?> = limits
+
+    override suspend fun upsertHomeConfig(target: TargetAppConfigEntity, limits: LimitConfigEntity) {
+        homeConfigUpsertCount += 1
+        upsertTargetApp(target)
+        upsertLimits(limits)
+    }
 
     override suspend fun upsertTargetApp(entity: TargetAppConfigEntity) {
         targetApp.value = entity

@@ -102,6 +102,36 @@ class MainViewModelTest {
         assertEquals("\u5FEB\u901F", viewModel.homeConfig.value.targetAppLabel)
         assertEquals("com.example.fast", repository.targetApp().first()?.packageName)
     }
+
+    @Test
+    fun stalePendingEditSaveCannotOverwriteConfigSavedForStart() = runTest {
+        val configDao = BlockingOldTargetConfigDao()
+        val repository = AttentionPetRepository(configDao, FakeSessionDao(), FakeEventDao())
+        val viewModel = MainViewModel(
+            repository = repository,
+            ioDispatcher = StandardTestDispatcher(testScheduler)
+        )
+        advanceUntilIdle()
+
+        viewModel.onTargetAppSelected(LaunchableApp(packageName = "com.example.old", label = "\u65E7\u914D\u7F6E"))
+        advanceUntilIdle()
+        assertTrue(configDao.oldSaveStarted.isCompleted)
+
+        viewModel.onTargetAppSelected(LaunchableApp(packageName = "com.example.current", label = "\u5F53\u524D\u914D\u7F6E"))
+        var started = false
+        viewModel.onStartMonitoring {
+            started = true
+        }
+        advanceUntilIdle()
+
+        assertTrue(started)
+        assertEquals("com.example.current", repository.targetApp().first()?.packageName)
+
+        configDao.releaseOldSave()
+        advanceUntilIdle()
+
+        assertEquals("com.example.current", repository.targetApp().first()?.packageName)
+    }
 }
 
 private class FakeConfigDao : ConfigDao {
@@ -141,6 +171,46 @@ private class DelayedConfigDao : ConfigDao {
     }
 
     override suspend fun upsertTargetApp(entity: TargetAppConfigEntity) {
+        targetApp.value = entity
+    }
+
+    override suspend fun upsertLimits(entity: LimitConfigEntity) {
+        limits.value = entity
+    }
+}
+
+private class BlockingOldTargetConfigDao : ConfigDao {
+    val oldSaveStarted = CompletableDeferred<Unit>()
+    private val releaseOldSave = CompletableDeferred<Unit>()
+    private val targetApp = MutableStateFlow<TargetAppConfigEntity?>(
+        TargetAppConfigEntity(
+            packageName = AttentionPetRepository.DEFAULT_TARGET_PACKAGE_NAME,
+            displayName = AttentionPetRepository.DEFAULT_TARGET_DISPLAY_NAME,
+            enabled = true
+        )
+    )
+    private val limits = MutableStateFlow<LimitConfigEntity?>(
+        LimitConfigEntity(
+            dailyLimitMinutes = AttentionPetRepository.DEFAULT_DAILY_LIMIT_MINUTES,
+            sessionLimitMinutes = AttentionPetRepository.DEFAULT_SESSION_LIMIT_MINUTES,
+            rollingWindowHours = AttentionPetRepository.DEFAULT_ROLLING_WINDOW_HOURS,
+            rollingWindowLimitMinutes = AttentionPetRepository.DEFAULT_ROLLING_WINDOW_LIMIT_MINUTES
+        )
+    )
+
+    fun releaseOldSave() {
+        releaseOldSave.complete(Unit)
+    }
+
+    override fun targetApp(): Flow<TargetAppConfigEntity?> = targetApp
+
+    override fun limits(): Flow<LimitConfigEntity?> = limits
+
+    override suspend fun upsertTargetApp(entity: TargetAppConfigEntity) {
+        if (entity.packageName == "com.example.old" && !oldSaveStarted.isCompleted) {
+            oldSaveStarted.complete(Unit)
+            releaseOldSave.await()
+        }
         targetApp.value = entity
     }
 

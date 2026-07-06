@@ -38,20 +38,22 @@ class AttentionPetRepository(
         sessionMinutes: Int,
         rollingWindowLimitMinutes: Int
     ): AttentionPetConfigSnapshot {
+        val coercedDailyMinutes = coerceDailyMinutes(dailyMinutes)
+        val coercedSessionMinutes = coerceSessionMinutes(sessionMinutes)
+        val coercedRollingWindowLimitMinutes = coerceRollingWindowLimitMinutes(rollingWindowLimitMinutes)
         val target = TargetAppConfigEntity(
             packageName = packageName,
             displayName = displayName,
             enabled = true
         )
         val limits = LimitConfigEntity(
-            dailyLimitMinutes = dailyMinutes,
-            sessionLimitMinutes = sessionMinutes,
+            dailyLimitMinutes = coercedDailyMinutes,
+            sessionLimitMinutes = coercedSessionMinutes,
             rollingWindowHours = DEFAULT_ROLLING_WINDOW_HOURS,
-            rollingWindowLimitMinutes = rollingWindowLimitMinutes
+            rollingWindowLimitMinutes = coercedRollingWindowLimitMinutes
         )
 
-        configDao.upsertTargetApp(target)
-        configDao.upsertLimits(limits)
+        configDao.upsertHomeConfig(target, limits)
         return AttentionPetConfigSnapshot(targetApp = target, limits = limits)
     }
 
@@ -68,19 +70,19 @@ class AttentionPetRepository(
     suspend fun saveLimits(dailyMinutes: Int, sessionMinutes: Int, rollingWindowLimitMinutes: Int) {
         configDao.upsertLimits(
             LimitConfigEntity(
-                dailyLimitMinutes = dailyMinutes,
-                sessionLimitMinutes = sessionMinutes,
-                rollingWindowHours = 5,
-                rollingWindowLimitMinutes = rollingWindowLimitMinutes
+                dailyLimitMinutes = coerceDailyMinutes(dailyMinutes),
+                sessionLimitMinutes = coerceSessionMinutes(sessionMinutes),
+                rollingWindowHours = DEFAULT_ROLLING_WINDOW_HOURS,
+                rollingWindowLimitMinutes = coerceRollingWindowLimitMinutes(rollingWindowLimitMinutes)
             )
         )
     }
 
     fun LimitConfigEntity.toRuleConfig(): RuleConfig {
         return RuleConfig(
-            dailyLimitMillis = dailyLimitMinutes * 60_000L,
-            sessionLimitMillis = sessionLimitMinutes * 60_000L,
-            rollingWindowLimitMillis = rollingWindowLimitMinutes * 60_000L
+            dailyLimitMillis = coerceDailyMinutes(dailyLimitMinutes) * 60_000L,
+            sessionLimitMillis = coerceSessionMinutes(sessionLimitMinutes) * 60_000L,
+            rollingWindowLimitMillis = coerceRollingWindowLimitMinutes(rollingWindowLimitMinutes) * 60_000L
         )
     }
 
@@ -159,6 +161,14 @@ class AttentionPetRepository(
         )
     }
 
+    private fun coerceDailyMinutes(minutes: Int): Int = minutes.coerceIn(MIN_DAILY_LIMIT_MINUTES, MAX_DAILY_LIMIT_MINUTES)
+
+    private fun coerceSessionMinutes(minutes: Int): Int = minutes.coerceIn(MIN_SESSION_LIMIT_MINUTES, MAX_SESSION_LIMIT_MINUTES)
+
+    private fun coerceRollingWindowLimitMinutes(minutes: Int): Int {
+        return minutes.coerceIn(MIN_ROLLING_WINDOW_LIMIT_MINUTES, MAX_ROLLING_WINDOW_LIMIT_MINUTES)
+    }
+
     companion object {
         const val DEFAULT_TARGET_PACKAGE_NAME = "com.ss.android.ugc.aweme"
         const val DEFAULT_TARGET_DISPLAY_NAME = "\u6296\u97F3"
@@ -166,5 +176,11 @@ class AttentionPetRepository(
         const val DEFAULT_SESSION_LIMIT_MINUTES = 15
         const val DEFAULT_ROLLING_WINDOW_LIMIT_MINUTES = 30
         const val DEFAULT_ROLLING_WINDOW_HOURS = 5
+        const val MIN_DAILY_LIMIT_MINUTES = 10
+        const val MAX_DAILY_LIMIT_MINUTES = 180
+        const val MIN_SESSION_LIMIT_MINUTES = 5
+        const val MAX_SESSION_LIMIT_MINUTES = 60
+        const val MIN_ROLLING_WINDOW_LIMIT_MINUTES = 5
+        const val MAX_ROLLING_WINDOW_LIMIT_MINUTES = 120
     }
 }
