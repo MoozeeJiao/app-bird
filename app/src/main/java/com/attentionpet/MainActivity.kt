@@ -10,6 +10,7 @@ import com.attentionpet.permissions.PermissionSnapshot
 import com.attentionpet.permissions.PermissionState
 import com.attentionpet.ui.AttentionPetTheme
 import com.attentionpet.ui.HomeScreen
+import com.attentionpet.ui.HomeScreenCopy
 import com.attentionpet.ui.HomeUiState
 
 class MainActivity : ComponentActivity() {
@@ -31,7 +32,7 @@ class MainActivity : ComponentActivity() {
                 HomeScreen(
                     state = HomeUiState(
                         permissionSnapshot = permissionSnapshot,
-                        targetAppLabel = "鎶栭煶",
+                        targetAppLabel = HomeScreenCopy.emptyTargetLabel,
                         dailyLimitMinutes = 60,
                         sessionLimitMinutes = 15,
                         rollingWindowLimitMinutes = 30

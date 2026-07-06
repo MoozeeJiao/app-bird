@@ -43,7 +43,7 @@ fun HomeScreen(
             .padding(18.dp)
     ) {
         Text("Attention Pet", style = MaterialTheme.typography.headlineMedium)
-        Text("浠婂ぉ鐨勫皬楦熻繕寰堟斁鏉?", color = MaterialTheme.colorScheme.secondary)
+        Text(HomeScreenCopy.subtitle, color = MaterialTheme.colorScheme.secondary)
         Spacer(Modifier.height(16.dp))
         PermissionCards(state.permissionSnapshot, onOpenUsageAccess, onOpenOverlayPermission)
         Spacer(Modifier.height(10.dp))
@@ -52,30 +52,42 @@ fun HomeScreen(
             enabled = state.permissionSnapshot.canStartMonitoring,
             onClick = onStartMonitoring
         ) {
-            Text("寮€濮嬪畧鎶?")
+            Text(HomeScreenCopy.startCta)
         }
         Spacer(Modifier.height(12.dp))
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(14.dp)) {
                 Row {
-                    Text("鍙楅檺 App", modifier = Modifier.weight(1f))
-                    OutlinedButton(onClick = onPickTargetApp) { Text("鏇存崲") }
+                    Text(HomeScreenCopy.targetCardTitle, modifier = Modifier.weight(1f))
+                    OutlinedButton(onClick = onPickTargetApp) { Text(HomeScreenCopy.pickTargetCta) }
                 }
-                Text(state.targetAppLabel)
+                Text(state.targetAppLabel.ifBlank { HomeScreenCopy.emptyTargetLabel })
             }
         }
-        RuleSlider("姣忔棩鎬讳娇鐢ㄩ檺鍒?", state.dailyLimitMinutes, 10, 180, onDailyChanged)
-        RuleSlider("鍗曟杩炵画浣跨敤闄愬埗", state.sessionLimitMinutes, 5, 60, onSessionChanged)
-        RuleSlider("杩囧幓 5 灏忔椂绐楀彛", state.rollingWindowLimitMinutes, 5, 120, onRollingChanged)
+        RuleSlider(HomeScreenCopy.dailySliderLabel, state.dailyLimitMinutes, 10, 180, onDailyChanged)
+        RuleSlider(HomeScreenCopy.sessionSliderLabel, state.sessionLimitMinutes, 5, 60, onSessionChanged)
+        RuleSlider(HomeScreenCopy.rollingSliderLabel, state.rollingWindowLimitMinutes, 5, 120, onRollingChanged)
     }
 }
 
 @Composable
 private fun PermissionCards(snapshot: PermissionSnapshot, onOpenUsageAccess: () -> Unit, onOpenOverlayPermission: () -> Unit) {
     Row(Modifier.fillMaxWidth()) {
-        PermissionCard("浣跨敤鎯呭喌鏉冮檺", snapshot.usageAccessGranted, "寮€鍚娇鐢ㄦ儏鍐垫潈闄?", onOpenUsageAccess, Modifier.weight(1f))
+        PermissionCard(
+            HomeScreenCopy.usagePermissionTitle,
+            snapshot.usageAccessGranted,
+            HomeScreenCopy.usagePermissionCta,
+            onOpenUsageAccess,
+            Modifier.weight(1f)
+        )
         Spacer(Modifier.padding(4.dp))
-        PermissionCard("鎮诞绐楁潈闄?", snapshot.overlayGranted, "寮€鍚偓娴獥鏉冮檺", onOpenOverlayPermission, Modifier.weight(1f))
+        PermissionCard(
+            HomeScreenCopy.overlayPermissionTitle,
+            snapshot.overlayGranted,
+            HomeScreenCopy.overlayPermissionCta,
+            onOpenOverlayPermission,
+            Modifier.weight(1f)
+        )
     }
 }
 
@@ -85,7 +97,7 @@ private fun PermissionCard(title: String, granted: Boolean, cta: String, onClick
         Column(Modifier.padding(10.dp)) {
             Text(title)
             if (granted) {
-                Text("宸插紑鍚?", color = MaterialTheme.colorScheme.secondary)
+                Text(HomeScreenCopy.grantedLabel, color = MaterialTheme.colorScheme.secondary)
             } else {
                 OutlinedButton(onClick = onClick) { Text(cta) }
             }
@@ -96,11 +108,30 @@ private fun PermissionCard(title: String, granted: Boolean, cta: String, onClick
 @Composable
 private fun RuleSlider(label: String, value: Int, min: Int, max: Int, onChanged: (Int) -> Unit) {
     Column(Modifier.padding(top = 12.dp)) {
-        Text("$label  $value 鍒嗛挓")
+        Text(HomeScreenCopy.ruleValueText(label, value))
         Slider(
             value = value.toFloat(),
             valueRange = min.toFloat()..max.toFloat(),
             onValueChange = { onChanged(it.toInt().coerceIn(min, max)) }
         )
     }
+}
+
+internal object HomeScreenCopy {
+    const val subtitle = "\u5C0F\u9E1F\u966A\u4F60\u5B88\u4F4F\u65F6\u95F4\u8FB9\u754C"
+    const val startCta = "\u5F00\u59CB\u966A\u4F34"
+    const val targetCardTitle = "\u53D7\u9650 App"
+    const val pickTargetCta = "\u9009\u62E9"
+    const val emptyTargetLabel = "\u672A\u9009\u62E9 App"
+    const val dailySliderLabel = "\u6BCF\u65E5\u603B\u9650\u5236"
+    const val sessionSliderLabel = "\u5355\u6B21\u8FDE\u7EED\u9650\u5236"
+    const val rollingSliderLabel = "\u8FC7\u53BB 5 \u5C0F\u65F6\u9650\u5236"
+    const val minutesSuffix = "\u5206\u949F"
+    const val usagePermissionTitle = "\u4F7F\u7528\u60C5\u51B5\u6743\u9650"
+    const val usagePermissionCta = "\u53BB\u5F00\u542F"
+    const val overlayPermissionTitle = "\u60AC\u6D6E\u7A97\u6743\u9650"
+    const val overlayPermissionCta = "\u53BB\u5F00\u542F"
+    const val grantedLabel = "\u5DF2\u5F00\u542F"
+
+    fun ruleValueText(label: String, value: Int): String = "$label  $value $minutesSuffix"
 }
