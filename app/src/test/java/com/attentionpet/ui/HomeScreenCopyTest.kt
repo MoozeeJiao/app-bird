@@ -20,6 +20,11 @@ class HomeScreenCopyTest {
         assertEquals("\u60AC\u6D6E\u7A97\u6743\u9650", HomeScreenCopy.overlayPermissionTitle)
         assertEquals("\u53BB\u5F00\u542F", HomeScreenCopy.overlayPermissionCta)
         assertEquals("\u5DF2\u5F00\u542F", HomeScreenCopy.grantedLabel)
+        assertEquals("\u8FD8\u5DEE %d \u6B65\u624D\u80FD\u5F00\u59CB\u966A\u4F34", HomeScreenCopy.missingPermissionFormat)
+        assertEquals("\u6743\u9650\u5DF2\u5F00\u542F\uFF0C\u5C0F\u9E1F\u53EF\u4EE5\u5728\u76EE\u6807 App \u6253\u5F00\u65F6\u51FA\u73B0\u3002", HomeScreenCopy.permissionsReady)
+        assertEquals("\u6B63\u5728\u966A\u4F34", HomeScreenCopy.activeCta)
+        assertEquals("\u6253\u5F00\u76EE\u6807 App \u540E\uFF0C\u5C0F\u9E1F\u4F1A\u51FA\u73B0\u5728\u5C4F\u5E55\u8FB9\u7F18\u3002", HomeScreenCopy.activeHint)
+        assertEquals("\u9009\u62E9\u53D7\u9650 App", HomeScreenCopy.targetPickerTitle)
     }
 
     @Test

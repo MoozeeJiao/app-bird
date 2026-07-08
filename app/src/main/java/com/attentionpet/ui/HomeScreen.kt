@@ -213,6 +213,11 @@ internal object HomeScreenCopy {
     const val overlayPermissionTitle = "\u60AC\u6D6E\u7A97\u6743\u9650"
     const val overlayPermissionCta = "\u53BB\u5F00\u542F"
     const val grantedLabel = "\u5DF2\u5F00\u542F"
+    const val missingPermissionFormat = "\u8FD8\u5DEE %d \u6B65\u624D\u80FD\u5F00\u59CB\u966A\u4F34"
+    const val permissionsReady = "\u6743\u9650\u5DF2\u5F00\u542F\uFF0C\u5C0F\u9E1F\u53EF\u4EE5\u5728\u76EE\u6807 App \u6253\u5F00\u65F6\u51FA\u73B0\u3002"
+    const val activeCta = "\u6B63\u5728\u966A\u4F34"
+    const val activeHint = "\u6253\u5F00\u76EE\u6807 App \u540E\uFF0C\u5C0F\u9E1F\u4F1A\u51FA\u73B0\u5728\u5C4F\u5E55\u8FB9\u7F18\u3002"
+    const val targetPickerTitle = "\u9009\u62E9\u53D7\u9650 App"
     const val dismissPickerCta = "\u53D6\u6D88"
 
     fun ruleValueText(label: String, value: Int): String = "$label  $value $minutesSuffix"

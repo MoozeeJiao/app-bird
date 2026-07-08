@@ -7,6 +7,7 @@ import com.attentionpet.data.AttentionPetConfigSnapshot
 import com.attentionpet.data.AttentionPetRepository
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -19,12 +20,21 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
+enum class MonitoringStatus {
+    IDLE,
+    STARTING,
+    ACTIVE,
+    ERROR
+}
+
 class MainViewModel(
     private val repository: AttentionPetRepository,
     internal val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ViewModel() {
     private val _homeConfig = MutableStateFlow(defaultHomeConfig())
     internal val homeConfig: StateFlow<HomeConfigState> = _homeConfig.asStateFlow()
+    private val _monitoringStatus = MutableStateFlow(MonitoringStatus.IDLE)
+    val monitoringStatus: StateFlow<MonitoringStatus> = _monitoringStatus.asStateFlow()
     private val userEditedConfig = AtomicBoolean(false)
     private val configVersion = AtomicLong(0L)
     private val saveMutex = Mutex()
@@ -66,16 +76,23 @@ class MainViewModel(
     }
 
     fun onStartMonitoring(startService: () -> Unit) {
+        _monitoringStatus.value = MonitoringStatus.STARTING
         viewModelScope.launch {
-            initializationJob.join()
-            pendingSaveJob?.cancelAndJoin()
-            configVersion.incrementAndGet()
-            withContext(ioDispatcher) {
-                saveMutex.withLock {
-                    repository.saveHomeConfig(_homeConfig.value)
+            try {
+                initializationJob.join()
+                pendingSaveJob?.cancelAndJoin()
+                configVersion.incrementAndGet()
+                withContext(ioDispatcher) {
+                    saveMutex.withLock {
+                        repository.saveHomeConfig(_homeConfig.value)
+                    }
                 }
+                startService()
+                _monitoringStatus.value = MonitoringStatus.ACTIVE
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                _monitoringStatus.value = MonitoringStatus.ERROR
             }
-            startService()
         }
     }
 

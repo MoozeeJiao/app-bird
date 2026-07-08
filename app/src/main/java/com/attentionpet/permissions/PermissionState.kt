@@ -7,11 +7,29 @@ import android.net.Uri
 import android.os.Process
 import android.provider.Settings
 
+enum class RequiredPermission {
+    USAGE_ACCESS,
+    OVERLAY
+}
+
 data class PermissionSnapshot(
     val usageAccessGranted: Boolean,
     val overlayGranted: Boolean
 ) {
     val canStartMonitoring: Boolean = usageAccessGranted && overlayGranted
+
+    fun missingPermissions(): List<RequiredPermission> {
+        val missing = mutableListOf<RequiredPermission>()
+        if (!usageAccessGranted) {
+            missing += RequiredPermission.USAGE_ACCESS
+        }
+        if (!overlayGranted) {
+            missing += RequiredPermission.OVERLAY
+        }
+        return missing
+    }
+
+    fun nextMissingPermission(): RequiredPermission? = missingPermissions().firstOrNull()
 }
 
 object PermissionState {

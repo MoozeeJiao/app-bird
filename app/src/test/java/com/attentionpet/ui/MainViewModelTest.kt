@@ -83,6 +83,46 @@ class MainViewModelTest {
     }
 
     @Test
+    fun startMonitoringMovesStatusToActiveAfterCallback() = runTest {
+        val repository = AttentionPetRepository(FakeConfigDao(), FakeSessionDao(), FakeEventDao())
+        val viewModel = MainViewModel(
+            repository = repository,
+            ioDispatcher = StandardTestDispatcher(testScheduler)
+        )
+        advanceUntilIdle()
+
+        var started = false
+        viewModel.onStartMonitoring {
+            started = true
+        }
+        assertEquals(MonitoringStatus.STARTING, viewModel.monitoringStatus.value)
+
+        advanceUntilIdle()
+
+        assertTrue(started)
+        assertEquals(MonitoringStatus.ACTIVE, viewModel.monitoringStatus.value)
+    }
+
+    @Test
+    fun startMonitoringErrorsAreVisibleInStatus() = runTest {
+        val repository = AttentionPetRepository(FakeConfigDao(), FakeSessionDao(), FakeEventDao())
+        val viewModel = MainViewModel(
+            repository = repository,
+            ioDispatcher = StandardTestDispatcher(testScheduler)
+        )
+        advanceUntilIdle()
+
+        viewModel.onStartMonitoring {
+            error("service unavailable")
+        }
+        assertEquals(MonitoringStatus.STARTING, viewModel.monitoringStatus.value)
+
+        advanceUntilIdle()
+
+        assertEquals(MonitoringStatus.ERROR, viewModel.monitoringStatus.value)
+    }
+
+    @Test
     fun delayedDefaultInitializationDoesNotOverwriteUserSelectionBeforeStart() = runTest {
         val configDao = DelayedConfigDao()
         val repository = AttentionPetRepository(configDao, FakeSessionDao(), FakeEventDao())
