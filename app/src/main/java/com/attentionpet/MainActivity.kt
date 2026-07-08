@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.attentionpet.permissions.PermissionSnapshot
 import com.attentionpet.permissions.PermissionState
+import com.attentionpet.permissions.RequiredPermission
 import com.attentionpet.service.AttentionMonitorService
 import com.attentionpet.ui.AttentionPetTheme
 import com.attentionpet.ui.AppPicker
@@ -25,7 +26,9 @@ class MainActivity : ComponentActivity() {
 
     private var permissionSnapshot by mutableStateOf(PermissionSnapshot(false, false))
     private var showAppPicker by mutableStateOf(false)
+    private var showPermissionGuide by mutableStateOf(false)
     private var launchableApps by mutableStateOf<List<LaunchableApp>>(emptyList())
+    private var selectedTargetIcon by mutableStateOf<android.graphics.drawable.Drawable?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,11 +38,15 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         permissionSnapshot = PermissionState.snapshot(this)
+        if (permissionSnapshot.canStartMonitoring) {
+            showPermissionGuide = false
+        }
     }
 
     private fun render() {
         setContent {
             val homeConfig by viewModel.homeConfig.collectAsStateWithLifecycle()
+            val monitoringStatus by viewModel.monitoringStatus.collectAsStateWithLifecycle()
 
             AttentionPetTheme {
                 HomeScreen(
@@ -48,12 +55,18 @@ class MainActivity : ComponentActivity() {
                         targetAppLabel = homeConfig.targetAppLabel,
                         dailyLimitMinutes = homeConfig.dailyLimitMinutes,
                         sessionLimitMinutes = homeConfig.sessionLimitMinutes,
-                        rollingWindowLimitMinutes = homeConfig.rollingWindowLimitMinutes
+                        rollingWindowLimitMinutes = homeConfig.rollingWindowLimitMinutes,
+                        monitoringStatus = monitoringStatus,
+                        targetAppIcon = selectedTargetIcon
                     ),
                     availableApps = launchableApps,
                     showAppPicker = showAppPicker,
-                    onOpenUsageAccess = { startActivity(PermissionState.usageAccessSettingsIntent()) },
-                    onOpenOverlayPermission = { startActivity(PermissionState.overlaySettingsIntent(this)) },
+                    showPermissionGuide = showPermissionGuide,
+                    onOpenUsageAccess = { openUsageAccessSettings() },
+                    onOpenOverlayPermission = { openOverlaySettings() },
+                    onOpenPermissionGuide = { showPermissionGuide = true },
+                    onDismissPermissionGuide = { showPermissionGuide = false },
+                    onOpenNextPermission = { openNextMissingPermission() },
                     onPickTargetApp = {
                         launchableApps = AppPicker.launchableApps(this)
                         showAppPicker = true
@@ -61,11 +74,16 @@ class MainActivity : ComponentActivity() {
                     onDismissAppPicker = { showAppPicker = false },
                     onTargetAppSelected = { app ->
                         viewModel.onTargetAppSelected(app)
+                        selectedTargetIcon = app.icon
                         showAppPicker = false
                     },
                     onStartMonitoring = {
-                        viewModel.onStartMonitoring {
-                            AttentionMonitorService.start(this@MainActivity)
+                        if (!permissionSnapshot.canStartMonitoring) {
+                            showPermissionGuide = true
+                        } else {
+                            viewModel.onStartMonitoring {
+                                AttentionMonitorService.start(this@MainActivity)
+                            }
                         }
                     },
                     onDailyChanged = viewModel::onDailyLimitChanged,
@@ -74,5 +92,21 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    private fun openNextMissingPermission() {
+        when (permissionSnapshot.nextMissingPermission()) {
+            RequiredPermission.USAGE_ACCESS -> openUsageAccessSettings()
+            RequiredPermission.OVERLAY -> openOverlaySettings()
+            null -> showPermissionGuide = false
+        }
+    }
+
+    private fun openUsageAccessSettings() {
+        runCatching { startActivity(PermissionState.usageAccessSettingsIntent()) }
+    }
+
+    private fun openOverlaySettings() {
+        runCatching { startActivity(PermissionState.overlaySettingsIntent(this)) }
     }
 }

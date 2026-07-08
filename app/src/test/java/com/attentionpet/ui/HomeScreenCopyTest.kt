@@ -1,5 +1,7 @@
 package com.attentionpet.ui
 
+import com.attentionpet.permissions.PermissionSnapshot
+import com.attentionpet.permissions.RequiredPermission
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -33,5 +35,35 @@ class HomeScreenCopyTest {
             "\u6BCF\u65E5\u603B\u9650\u5236  60 \u5206\u949F",
             HomeScreenCopy.ruleValueText(HomeScreenCopy.dailySliderLabel, 60)
         )
+    }
+
+    @Test
+    fun permissionStatusTextSummarizesReadiness() {
+        assertEquals(
+            "\u8FD8\u5DEE 2 \u6B65\u624D\u80FD\u5F00\u59CB\u966A\u4F34",
+            HomeScreenCopy.permissionStatusText(PermissionSnapshot(usageAccessGranted = false, overlayGranted = false))
+        )
+        assertEquals(
+            "\u8FD8\u5DEE 1 \u6B65\u624D\u80FD\u5F00\u59CB\u966A\u4F34",
+            HomeScreenCopy.permissionStatusText(PermissionSnapshot(usageAccessGranted = true, overlayGranted = false))
+        )
+        assertEquals(
+            HomeScreenCopy.permissionsReady,
+            HomeScreenCopy.permissionStatusText(PermissionSnapshot(usageAccessGranted = true, overlayGranted = true))
+        )
+    }
+
+    @Test
+    fun startButtonTextReflectsMonitoringStatus() {
+        assertEquals(HomeScreenCopy.startCta, HomeScreenCopy.startButtonText(MonitoringStatus.IDLE))
+        assertEquals(HomeScreenCopy.startingCta, HomeScreenCopy.startButtonText(MonitoringStatus.STARTING))
+        assertEquals(HomeScreenCopy.activeCta, HomeScreenCopy.startButtonText(MonitoringStatus.ACTIVE))
+        assertEquals(HomeScreenCopy.retryCta, HomeScreenCopy.startButtonText(MonitoringStatus.ERROR))
+    }
+
+    @Test
+    fun permissionGuideCopyExplainsNextStep() {
+        assertEquals("\u5F00\u542F\u4F7F\u7528\u60C5\u51B5\u6743\u9650", HomeScreenCopy.permissionStepTitle(RequiredPermission.USAGE_ACCESS))
+        assertEquals("\u5F00\u542F\u60AC\u6D6E\u7A97\u6743\u9650", HomeScreenCopy.permissionStepTitle(RequiredPermission.OVERLAY))
     }
 }
