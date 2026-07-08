@@ -15,6 +15,7 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.attentionpet.AttentionPetTestIds
 import com.attentionpet.domain.RuleEvaluationResult
 
 class OverlayController(private val context: Context) {
@@ -25,7 +26,7 @@ class OverlayController(private val context: Context) {
     private var sheetView: View? = null
 
     fun showCapsule(result: RuleEvaluationResult, onClick: () -> Unit = {}) {
-        val view = capsuleView ?: composeView().also {
+        val view = capsuleView ?: composeView(AttentionPetTestIds.OVERLAY_CAPSULE).also {
             capsuleView = it
             windowManager.addView(it, capsuleParams())
         }
@@ -37,7 +38,7 @@ class OverlayController(private val context: Context) {
 
     fun showPanel(result: RuleEvaluationResult, currentSessionText: String = "") {
         hidePanel()
-        val view = composeView()
+        val view = composeView(AttentionPetTestIds.OVERLAY_PANEL)
         panelView = view
         view.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_OUTSIDE) {
@@ -56,7 +57,7 @@ class OverlayController(private val context: Context) {
     fun showTimeoutSheet(onRest: () -> Unit = {}, onExtend: () -> Unit = {}) {
         hidePanel()
         hideTimeoutSheet()
-        val view = composeView()
+        val view = composeView(AttentionPetTestIds.TIMEOUT_SHEET)
         sheetView = view
         view.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_OUTSIDE) {
@@ -101,6 +102,7 @@ class OverlayController(private val context: Context) {
         gravity = Gravity.TOP or Gravity.START
         x = 0
         y = 108
+        setTitle("Attention Pet capsule")
     }
 
     private fun panelParams(): WindowManager.LayoutParams = WindowManager.LayoutParams(
@@ -116,6 +118,7 @@ class OverlayController(private val context: Context) {
         gravity = Gravity.TOP or Gravity.START
         x = 0
         y = 108
+        setTitle("Attention Pet panel")
     }
 
     private fun timeoutSheetParams(): WindowManager.LayoutParams = WindowManager.LayoutParams(
@@ -129,13 +132,16 @@ class OverlayController(private val context: Context) {
         PixelFormat.TRANSLUCENT
     ).apply {
         gravity = Gravity.BOTTOM
+        setTitle("Attention Pet timeout")
     }
 
-    private fun composeView(): ComposeView {
+    private fun composeView(accessibilityDescription: String): ComposeView {
         return ComposeView(context).apply {
             val owner = OverlayLifecycleOwner()
             setViewTreeLifecycleOwner(owner)
             setViewTreeSavedStateRegistryOwner(owner)
+            contentDescription = accessibilityDescription
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
             owner.handleResume()
         }
     }

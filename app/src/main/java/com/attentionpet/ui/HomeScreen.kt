@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -128,16 +129,11 @@ fun HomeScreen(
                 )
             }
             item {
-                Button(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .semantics { contentDescription = AttentionPetTestIds.START_MONITORING },
+                StartMonitoringButton(
+                    text = HomeScreenCopy.startButtonText(state.monitoringStatus),
                     enabled = state.monitoringStatus != MonitoringStatus.STARTING,
                     onClick = onStartMonitoring
-                ) {
-                    Text(HomeScreenCopy.startButtonText(state.monitoringStatus))
-                }
+                )
             }
             if (state.monitoringStatus == MonitoringStatus.ACTIVE || state.monitoringStatus == MonitoringStatus.ERROR) {
                 item {
@@ -207,7 +203,7 @@ private fun TopBar() {
 
 @Composable
 private fun CompanionPanel(state: HomeUiState) {
-    Card(Modifier.fillMaxWidth()) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -250,6 +246,25 @@ private fun CompanionPanel(state: HomeUiState) {
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun StartMonitoringButton(text: String, enabled: Boolean, onClick: () -> Unit) {
+    val background = if (enabled) MaterialTheme.colorScheme.primary else Color(0xFFDDE5E2)
+    val content = if (enabled) MaterialTheme.colorScheme.onPrimary else Color(0xFF71817B)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .semantics { contentDescription = AttentionPetTestIds.START_MONITORING }
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+        shape = CircleShape,
+        color = background
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(text = text, color = content, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -300,7 +315,7 @@ private fun MonitoringStatusStrip(state: HomeUiState) {
 
 @Composable
 private fun TargetAppCard(label: String, icon: Drawable?, onPickTargetApp: () -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(HomeScreenCopy.targetCardTitle, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
@@ -318,7 +333,7 @@ private fun TargetAppCard(label: String, icon: Drawable?, onPickTargetApp: () ->
 
 @Composable
 private fun RuleSlider(label: String, value: Int, min: Int, max: Int, onChanged: (Int) -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(Modifier.padding(14.dp)) {
             Row {
                 Text(label, modifier = Modifier.weight(1f))

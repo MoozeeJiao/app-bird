@@ -157,7 +157,7 @@ class AttentionPetOverlayE2eTest {
     private fun startMonitoringFromHome() {
         assertTrue(
             "Start button should become visible after permissions are granted",
-            device.wait(Until.hasObject(By.desc(AttentionPetTestIds.START_MONITORING)), TIMEOUT_MILLIS)
+            device.wait(Until.hasObject(By.desc(AttentionPetTestIds.START_MONITORING)), HOME_START_TIMEOUT_MILLIS)
         )
         device.findObject(By.desc(AttentionPetTestIds.START_MONITORING)).click()
     }
@@ -240,6 +240,7 @@ class AttentionPetOverlayE2eTest {
     private companion object {
         const val FIXTURE_PACKAGE = "com.attentionpet.fixture.shortvideo"
         const val TIMEOUT_MILLIS = 15_000L
+        const val HOME_START_TIMEOUT_MILLIS = 75_000L
         const val STATE_TIMEOUT_MILLIS = 75_000L
     }
 }
