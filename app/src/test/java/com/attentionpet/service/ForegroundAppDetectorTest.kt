@@ -61,10 +61,28 @@ class ForegroundAppDetectorTest {
 
         assertNull(detector.currentForegroundPackage(5_000L))
     }
+
+    @Test
+    fun fallsBackToMostRecentlyUsedPackageWhenTransitionEventsAreUnavailable() {
+        val source = FakeForegroundEventSource(
+            usageSnapshots = listOf(
+                ForegroundUsageSnapshot("com.other", 2_000L),
+                ForegroundUsageSnapshot("com.target", 4_500L)
+            )
+        )
+        val detector = ForegroundAppDetector(
+            eventSource = source,
+            bootstrapLookbackMillis = 10_000L,
+            overlapMillis = 1_000L
+        )
+
+        assertEquals("com.target", detector.currentForegroundPackage(5_000L))
+    }
 }
 
 private class FakeForegroundEventSource(
-    vararg transitions: ForegroundTransition
+    vararg transitions: ForegroundTransition,
+    private val usageSnapshots: List<ForegroundUsageSnapshot> = emptyList()
 ) : ForegroundEventSource {
     val queries = mutableListOf<Pair<Long, Long>>()
     private val transitions = transitions.toList()
@@ -72,5 +90,9 @@ private class FakeForegroundEventSource(
     override fun queryEvents(startMillis: Long, endMillis: Long): List<ForegroundTransition> {
         queries += startMillis to endMillis
         return transitions.filter { it.timestampMillis in startMillis..endMillis }
+    }
+
+    override fun queryUsageSnapshots(startMillis: Long, endMillis: Long): List<ForegroundUsageSnapshot> {
+        return usageSnapshots.filter { it.lastTimeUsedMillis in startMillis..endMillis }
     }
 }

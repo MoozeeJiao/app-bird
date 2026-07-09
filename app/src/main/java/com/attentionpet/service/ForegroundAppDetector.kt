@@ -1,7 +1,7 @@
 package com.attentionpet.service
 
-import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
+import android.app.usage.UsageEvents
 import android.content.Context
 
 class ForegroundAppDetector internal constructor(
@@ -30,6 +30,13 @@ class ForegroundAppDetector internal constructor(
                 }
             }
         }
+        if (transitions.isEmpty()) {
+            val latestUsageSnapshot = eventSource.queryUsageSnapshots(queryStartMillis, queryEndMillis)
+                .maxByOrNull { it.lastTimeUsedMillis }
+            if (latestUsageSnapshot != null) {
+                lastForegroundPackage = latestUsageSnapshot.packageName
+            }
+        }
 
         lastQueryEndMillis = maxOf(lastQueryEndMillis ?: queryEndMillis, queryEndMillis)
         return lastForegroundPackage
@@ -52,7 +59,14 @@ class ForegroundAppDetector internal constructor(
 
 internal interface ForegroundEventSource {
     fun queryEvents(startMillis: Long, endMillis: Long): List<ForegroundTransition>
+
+    fun queryUsageSnapshots(startMillis: Long, endMillis: Long): List<ForegroundUsageSnapshot>
 }
+
+internal data class ForegroundUsageSnapshot(
+    val packageName: String,
+    val lastTimeUsedMillis: Long
+)
 
 internal data class ForegroundTransition(
     val packageName: String,
@@ -89,5 +103,19 @@ private class AndroidForegroundEventSource(context: Context) : ForegroundEventSo
         }
 
         return transitions
+    }
+
+    override fun queryUsageSnapshots(startMillis: Long, endMillis: Long): List<ForegroundUsageSnapshot> {
+        return usageStatsManager.queryUsageStats(
+            UsageStatsManager.INTERVAL_BEST,
+            startMillis,
+            endMillis
+        ).mapNotNull { usageStats ->
+            val packageName = usageStats.packageName ?: return@mapNotNull null
+            ForegroundUsageSnapshot(
+                packageName = packageName,
+                lastTimeUsedMillis = usageStats.lastTimeUsed
+            )
+        }
     }
 }

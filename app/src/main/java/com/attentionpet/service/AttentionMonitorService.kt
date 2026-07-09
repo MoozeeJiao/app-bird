@@ -63,23 +63,28 @@ class AttentionMonitorService : Service() {
 
     private suspend fun pollForegroundApp() {
         val repository = (application as AttentionPetApp).repository
-        val target = repository.targetApp().first()
-        val limits = repository.limits().first()
-        if (target == null || !target.enabled || limits == null) {
-            withContext(Dispatchers.Main.immediate) {
-                overlayController.hideAll()
-                stopSelf()
-            }
-            return
-        }
-
-        val ruleConfig = with(repository) { limits.toRuleConfig() }
-        val tracker = SessionTracker(target.packageName, ruleConfig.sessionGraceMillis)
+        val sessionRuntime = MonitorSessionRuntime()
 
         while (coroutineContext.isActive) {
+            val target = repository.targetApp().first()
+            val limits = repository.limits().first()
+            if (target == null || !target.enabled || limits == null) {
+                withContext(Dispatchers.Main.immediate) {
+                    overlayController.hideAll()
+                    stopSelf()
+                }
+                return
+            }
+
+            val ruleConfig = with(repository) { limits.toRuleConfig() }
             val nowMillis = System.currentTimeMillis()
             val foregroundPackage = detector.currentForegroundPackage(nowMillis)
-            val sessionState = tracker.onForegroundSample(foregroundPackage, nowMillis)
+            val sessionState = sessionRuntime.sample(
+                targetPackage = target.packageName,
+                graceMillis = ruleConfig.sessionGraceMillis,
+                foregroundPackage = foregroundPackage,
+                nowMillis = nowMillis
+            )
 
             if (sessionState.activeStartMillis != null) {
                 val zoneId = ZoneId.systemDefault()
